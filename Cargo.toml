@@ -35,8 +35,8 @@ rand_chacha = "0.1"
 [features]
 default = ["std", "avx2_backend"]
 avx2_backend = ["curve25519-dalek/avx2_backend"]
-std = ["serde/std"]
-alloc = ["rand_core/alloc", "serde/alloc"]
+std = ["serde/std", "merlin/std"]
+alloc = ["rand_core/alloc", "serde/alloc", "merlin/alloc"]
 
 # Disable the yoloproofs feature for the released crate, so that it's not possible for someone to publish a crate using R1CS proofs yet.
 # yoloproofs = []
