@@ -72,7 +72,7 @@ pub fn add_vec(a: &[Scalar], b: &[Scalar]) -> Vec<Scalar> {
     let mut out = Vec::new();
     if a.len() != b.len() {
         // throw some error
-        println!("lengths of vectors don't match for vector addition");
+        //println!("lengths of vectors don't match for vector addition");
     }
     for i in 0..a.len() {
         out.push(a[i] + b[i]);
