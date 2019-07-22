@@ -361,20 +361,20 @@ impl<'t> Verifier<'t> {
         let y = self.transcript.challenge_scalar(b"y");
         let z = self.transcript.challenge_scalar(b"z");
 
-        self.transcript.commit_point(b"T_1", &proof.T_1);
-        self.transcript.commit_point(b"T_3", &proof.T_3);
-        self.transcript.commit_point(b"T_4", &proof.T_4);
-        self.transcript.commit_point(b"T_5", &proof.T_5);
-        self.transcript.commit_point(b"T_6", &proof.T_6);
+        self.transcript.append_point(b"T_1", &proof.T_1);
+        self.transcript.append_point(b"T_3", &proof.T_3);
+        self.transcript.append_point(b"T_4", &proof.T_4);
+        self.transcript.append_point(b"T_5", &proof.T_5);
+        self.transcript.append_point(b"T_6", &proof.T_6);
 
         let u = self.transcript.challenge_scalar(b"u");
         let x = self.transcript.challenge_scalar(b"x");
 
-        self.transcript.commit_scalar(b"t_x", &proof.t_x);
+        self.transcript.append_scalar(b"t_x", &proof.t_x);
         self.transcript
-            .commit_scalar(b"t_x_blinding", &proof.t_x_blinding);
+            .append_scalar(b"t_x_blinding", &proof.t_x_blinding);
         self.transcript
-            .commit_scalar(b"e_blinding", &proof.e_blinding);
+            .append_scalar(b"e_blinding", &proof.e_blinding);
 
         let w = self.transcript.challenge_scalar(b"w");
 

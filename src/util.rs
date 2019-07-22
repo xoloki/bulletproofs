@@ -1,6 +1,13 @@
 #![deny(missing_docs)]
 #![allow(non_snake_case)]
 
+cfg_if::cfg_if! {
+    if #[cfg(feature = "alloc")] {
+        extern crate alloc;
+        use alloc::vec::Vec;
+    }
+}
+
 use clear_on_drop::clear::Clear;
 use curve25519_dalek::scalar::Scalar;
 use inner_product_proof::inner_product;
@@ -64,7 +71,7 @@ pub fn exp_iter(x: Scalar) -> ScalarExp {
 pub fn add_vec(a: &[Scalar], b: &[Scalar]) -> Vec<Scalar> {
     if a.len() != b.len() {
         // throw some error
-        println!("lengths of vectors don't match for vector addition");
+        //println!("lengths of vectors don't match for vector addition");
     }
     let mut out = vec![Scalar::zero(); b.len()];
     for i in 0..a.len() {
@@ -75,7 +82,8 @@ pub fn add_vec(a: &[Scalar], b: &[Scalar]) -> Vec<Scalar> {
 
 impl VecPoly1 {
     pub fn zero(n: usize) -> Self {
-        VecPoly1(vec![Scalar::zero(); n], vec![Scalar::zero(); n])
+        let zn: Vec<Scalar> = (0..n).map(|_| Scalar::zero()).collect();
+        VecPoly1(zn.clone(), zn)
     }
 
     pub fn inner_product(&self, rhs: &VecPoly1) -> Poly2 {
@@ -96,7 +104,7 @@ impl VecPoly1 {
 
     pub fn eval(&self, x: Scalar) -> Vec<Scalar> {
         let n = self.0.len();
-        let mut out = vec![Scalar::zero(); n];
+        let mut out: Vec<Scalar> = (0..n).map(|_| Scalar::zero()).collect();
         for i in 0..n {
             out[i] = self.0[i] + self.1[i] * x;
         }
@@ -107,11 +115,12 @@ impl VecPoly1 {
 #[cfg(feature = "yoloproofs")]
 impl VecPoly3 {
     pub fn zero(n: usize) -> Self {
+        let zn: Vec<Scalar> = (0..n).map(|_| Scalar::zero()).collect();
         VecPoly3(
-            vec![Scalar::zero(); n],
-            vec![Scalar::zero(); n],
-            vec![Scalar::zero(); n],
-            vec![Scalar::zero(); n],
+            zn.clone(),
+            zn.clone(),
+            zn.clone(),
+            zn.clone(),
         )
     }
 
@@ -141,7 +150,7 @@ impl VecPoly3 {
 
     pub fn eval(&self, x: Scalar) -> Vec<Scalar> {
         let n = self.0.len();
-        let mut out = vec![Scalar::zero(); n];
+        let mut out: Vec<Scalar> = (0..n).map(|_| Scalar::zero()).collect();
         for i in 0..n {
             out[i] = self.0[i] + x * (self.1[i] + x * (self.2[i] + x * self.3[i]));
         }
@@ -278,18 +287,8 @@ mod tests {
 
     #[test]
     fn test_inner_product() {
-        let a = vec![
-            Scalar::from(1u64),
-            Scalar::from(2u64),
-            Scalar::from(3u64),
-            Scalar::from(4u64),
-        ];
-        let b = vec![
-            Scalar::from(2u64),
-            Scalar::from(3u64),
-            Scalar::from(4u64),
-            Scalar::from(5u64),
-        ];
+        let a: Vec<Scalar> = (1..5).map(|i| Scalar::from(i as u64)).collect();
+        let b: Vec<Scalar> = (2..6).map(|i| Scalar::from(i as u64)).collect();
         assert_eq!(Scalar::from(40u64), inner_product(&a, &b));
     }
 
@@ -347,7 +346,8 @@ mod tests {
 
     #[test]
     fn vec_of_scalars_clear_on_drop() {
-        let mut v = vec![Scalar::from(24u64), Scalar::from(42u64)];
+        let mut v = Vec::new();
+        v.extend_from_slice(&[Scalar::from(24u64), Scalar::from(42u64)]);
 
         for e in v.iter_mut() {
             e.clear();

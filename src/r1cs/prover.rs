@@ -397,7 +397,7 @@ impl<'t, 'g> Prover<'t, 'g> {
 
             // Commit the blinding factors for the input wires
             for v_b in &self.v_blinding {
-                builder = builder.commit_witness_bytes(b"v_blinding", v_b.as_bytes());
+                builder = builder.rekey_with_witness_bytes(b"v_blinding", v_b.as_bytes());
             }
 
             use rand::thread_rng;
@@ -582,11 +582,11 @@ impl<'t, 'g> Prover<'t, 'g> {
         let T_5 = self.pc_gens.commit(t_poly.t5, t_5_blinding).compress();
         let T_6 = self.pc_gens.commit(t_poly.t6, t_6_blinding).compress();
 
-        self.transcript.commit_point(b"T_1", &T_1);
-        self.transcript.commit_point(b"T_3", &T_3);
-        self.transcript.commit_point(b"T_4", &T_4);
-        self.transcript.commit_point(b"T_5", &T_5);
-        self.transcript.commit_point(b"T_6", &T_6);
+        self.transcript.append_point(b"T_1", &T_1);
+        self.transcript.append_point(b"T_3", &T_3);
+        self.transcript.append_point(b"T_4", &T_4);
+        self.transcript.append_point(b"T_5", &T_5);
+        self.transcript.append_point(b"T_6", &T_6);
 
         let u = self.transcript.challenge_scalar(b"u");
         let x = self.transcript.challenge_scalar(b"x");
@@ -628,10 +628,10 @@ impl<'t, 'g> Prover<'t, 'g> {
 
         let e_blinding = x * (i_blinding + x * (o_blinding + x * s_blinding));
 
-        self.transcript.commit_scalar(b"t_x", &t_x);
+        self.transcript.append_scalar(b"t_x", &t_x);
         self.transcript
-            .commit_scalar(b"t_x_blinding", &t_x_blinding);
-        self.transcript.commit_scalar(b"e_blinding", &e_blinding);
+            .append_scalar(b"t_x_blinding", &t_x_blinding);
+        self.transcript.append_scalar(b"e_blinding", &e_blinding);
 
         // Get a challenge value to combine statements for the IPP
         let w = self.transcript.challenge_scalar(b"w");

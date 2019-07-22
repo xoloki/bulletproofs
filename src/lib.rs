@@ -1,3 +1,5 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(feature = "alloc", feature(alloc))]
 #![feature(nll)]
 #![feature(external_doc)]
 #![feature(try_trait)]
@@ -6,9 +8,19 @@
 #![doc(html_logo_url = "https://doc.dalek.rs/assets/dalek-logo-clear.png")]
 
 extern crate byteorder;
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "alloc")] {
+        extern crate alloc;
+        use alloc::vec::Vec;
+    }
+}
+
+#[cfg(feature = "std")]
 extern crate core;
+
 extern crate digest;
-extern crate rand;
+extern crate rand_core;
 extern crate sha3;
 
 extern crate clear_on_drop;

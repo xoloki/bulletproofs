@@ -10,6 +10,14 @@
 //! modules orchestrate the protocol execution, see the documentation
 //! in the [`aggregation`](::range_proof_mpc) module.
 
+cfg_if::cfg_if! {
+    if #[cfg(feature = "alloc")] {
+        extern crate alloc;
+        use alloc::vec::Vec;
+    }
+}
+
+use core::iter;
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::MultiscalarMul;
@@ -17,8 +25,7 @@ use curve25519_dalek::traits::MultiscalarMul;
 use clear_on_drop::clear::Clear;
 use errors::MPCError;
 use generators::{BulletproofGens, PedersenGens};
-use rand;
-use std::iter;
+use rand_core::{CryptoRng, RngCore};
 use util;
 
 use super::messages::*;
@@ -68,20 +75,18 @@ pub struct PartyAwaitingPosition<'a> {
 impl<'a> PartyAwaitingPosition<'a> {
     /// Assigns a position in the aggregated proof to this party,
     /// allowing the party to commit to the bits of their value.
-    pub fn assign_position(
+    pub fn assign_position<T: RngCore + CryptoRng>(
         self,
         j: usize,
+        rng: &mut T,
     ) -> Result<(PartyAwaitingBitChallenge<'a>, BitCommitment), MPCError> {
-        // XXX use transcript RNG
-        let mut rng = rand::thread_rng();
-
         if self.bp_gens.party_capacity <= j {
             return Err(MPCError::InvalidGeneratorsLength);
         }
 
         let bp_share = self.bp_gens.share(j);
 
-        let a_blinding = Scalar::random(&mut rng);
+        let a_blinding = Scalar::random(rng);
         // Compute A = <a_L, G> + <a_R, H> + a_blinding * B_blinding
         let mut A = self.pc_gens.B_blinding * a_blinding;
 
@@ -97,9 +102,9 @@ impl<'a> PartyAwaitingPosition<'a> {
             i += 1;
         }
 
-        let s_blinding = Scalar::random(&mut rng);
-        let s_L: Vec<Scalar> = (0..self.n).map(|_| Scalar::random(&mut rng)).collect();
-        let s_R: Vec<Scalar> = (0..self.n).map(|_| Scalar::random(&mut rng)).collect();
+        let s_blinding = Scalar::random(rng);
+        let s_L: Vec<Scalar> = (0..self.n).map(|_| Scalar::random(rng)).collect();
+        let s_R: Vec<Scalar> = (0..self.n).map(|_| Scalar::random(rng)).collect();
 
         // Compute S = <s_L, G> + <s_R, H> + s_blinding * B_blinding
         let S = RistrettoPoint::multiscalar_mul(
@@ -155,12 +160,11 @@ pub struct PartyAwaitingBitChallenge<'a> {
 impl<'a> PartyAwaitingBitChallenge<'a> {
     /// Receive a [`BitChallenge`] from the dealer and use it to
     /// compute commitments to the party's polynomial coefficients.
-    pub fn apply_challenge(
+    pub fn apply_challenge<T: RngCore + CryptoRng>(
         self,
         vc: &BitChallenge,
+        rng: &mut T,
     ) -> (PartyAwaitingPolyChallenge, PolyCommitment) {
-        let mut rng = rand::thread_rng();
-
         let n = self.n;
         let offset_y = util::scalar_exp_vartime(&vc.y, (self.j * n) as u64);
         let offset_z = util::scalar_exp_vartime(&vc.z, self.j as u64);
@@ -188,8 +192,8 @@ impl<'a> PartyAwaitingBitChallenge<'a> {
         let t_poly = l_poly.inner_product(&r_poly);
 
         // Generate x by committing to T_1, T_2 (line 49-54)
-        let t_1_blinding = Scalar::random(&mut rng);
-        let t_2_blinding = Scalar::random(&mut rng);
+        let t_1_blinding = Scalar::random(rng);
+        let t_2_blinding = Scalar::random(rng);
         let T_1 = self.pc_gens.commit(t_poly.1, t_1_blinding);
         let T_2 = self.pc_gens.commit(t_poly.2, t_2_blinding);
 
@@ -255,7 +259,10 @@ pub struct PartyAwaitingPolyChallenge {
 impl PartyAwaitingPolyChallenge {
     /// Receive a [`PolyChallenge`] from the dealer and compute the
     /// party's proof share.
-    pub fn apply_challenge(self, pc: &PolyChallenge) -> Result<ProofShare, MPCError> {
+    pub fn apply_challenge(
+        self,
+        pc: &PolyChallenge,
+    ) -> Result<ProofShare, MPCError> {
         // Prevent a malicious dealer from annihilating the blinding
         // factors by supplying a zero challenge.
         if pc.x == Scalar::zero() {

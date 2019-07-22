@@ -1,9 +1,21 @@
 #![allow(non_snake_case)]
 #![doc(include = "../docs/inner-product-protocol.md")]
 
-use std::borrow::Borrow;
-use std::iter;
+cfg_if::cfg_if! {
+    if #[cfg(feature = "std")] {
+        use std::borrow::Borrow;
+    }
+}
 
+cfg_if::cfg_if! {
+    if #[cfg(feature = "alloc")] {
+        extern crate alloc;
+        use alloc::vec::Vec;
+        use alloc::borrow::Borrow;
+    }
+}
+
+use core::iter;
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::VartimeMultiscalarMul;
@@ -112,8 +124,8 @@ impl InnerProductProof {
             L_vec.push(L);
             R_vec.push(R);
 
-            transcript.commit_point(b"L", &L);
-            transcript.commit_point(b"R", &R);
+            transcript.append_point(b"L", &L);
+            transcript.append_point(b"R", &R);
 
             let u = transcript.challenge_scalar(b"u");
             let u_inv = u.invert();
@@ -162,8 +174,8 @@ impl InnerProductProof {
             L_vec.push(L);
             R_vec.push(R);
 
-            transcript.commit_point(b"L", &L);
-            transcript.commit_point(b"R", &R);
+            transcript.append_point(b"L", &L);
+            transcript.append_point(b"R", &R);
 
             let u = transcript.challenge_scalar(b"u");
             let u_inv = u.invert();
@@ -213,8 +225,8 @@ impl InnerProductProof {
 
         let mut challenges = Vec::with_capacity(lg_n);
         for (L, R) in self.L_vec.iter().zip(self.R_vec.iter()) {
-            transcript.commit_point(b"L", L);
-            transcript.commit_point(b"R", R);
+            transcript.validate_and_append_point(b"L", L)?;
+            transcript.validate_and_append_point(b"R", R)?;
             challenges.push(transcript.challenge_scalar(b"u"));
         }
 
