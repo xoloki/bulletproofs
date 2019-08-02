@@ -1,5 +1,4 @@
 #![allow(non_snake_case)]
-#![doc(include = "../../docs/range-proof-protocol.md")]
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "alloc")] {
